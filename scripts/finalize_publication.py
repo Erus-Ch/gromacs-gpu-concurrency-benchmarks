@@ -10,7 +10,6 @@ import re
 import statistics as st
 from urllib.parse import urlparse
 import zipfile
-import markdown
 
 p=argparse.ArgumentParser()
 p.add_argument('root',nargs='?',default='.')
@@ -90,29 +89,10 @@ if (root/'REPRODUCE.md').exists():
     if 'scripts/finalize_publication.py .' not in reproduction:
         reproduction=reproduction.replace('scripts/analyze_extended.py .','scripts/analyze_extended.py .\n.venv/bin/python scripts/finalize_publication.py .')
     (root/'REPRODUCE.md').write_text(reproduction)
-body=markdown.markdown(readme,extensions=['tables','fenced_code','toc'])
-full=markdown.markdown('\n'.join(report.splitlines()[1:]),extensions=['tables','fenced_code','toc'])
-schema={'@context':'https://schema.org','@type':'Dataset','name':title,'description':description,
-        'inLanguage':'en','keywords':settings['topics'],
-        'citation':'https://doi.org/10.5281/zenodo.3893789',
-        'measurementTechnique':'GROMACS 2026.1 mixed-precision RNase cubic MD; independent GPU-sharing jobs; per-process timing resets and longer confirmations'}
-if settings.get('citation_doi'):schema['identifier']='https://doi.org/'+doi
-canonical=''
 if site:
-    canonical=f'<link rel="canonical" href="{html.escape(site,quote=True)}">\n<meta property="og:url" content="{html.escape(site,quote=True)}">'
-    schema['url']=site
-    schema['distribution']={'@type':'DataDownload','encodingFormat':'text/csv','contentUrl':site+'configuration_summary.csv'}
     (root/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'+html.escape(site)+'</loc></url></urlset>\n')
-style='''body{margin:0;background:#f5f7fa;color:#1b2938;font:17px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:36px auto;padding:28px;background:#fff;border:1px solid #dce2e9;border-radius:12px}h1{font-size:2rem;line-height:1.25}h2{margin-top:2rem}a{color:#1859a0}table{display:block;overflow-x:auto;border-collapse:collapse;width:100%;font-size:.9rem}th,td{padding:9px;border:1px solid #d6dee7;text-align:left}th{background:#edf3f8}td:nth-child(2),th:nth-child(2){white-space:nowrap}img{max-width:100%;height:auto}pre{padding:16px;overflow:auto;background:#f0f3f6}code{font-family:ui-monospace,monospace;font-size:.88em}nav{padding:12px;background:#edf3f8;border-radius:6px}.mermaid{white-space:pre-wrap}@media(max-width:680px){main{margin:0;padding:18px;border:0;border-radius:0}h1{font-size:1.5rem}}'''
-# No client-side code is required to reveal the benchmark text or tables.
-document=f'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)}</title><meta name="description" content="{html.escape(description,quote=True)}">
-<meta name="robots" content="index,follow"><meta property="og:type" content="article">
-<meta property="og:title" content="{html.escape(title,quote=True)}"><meta property="og:description" content="{html.escape(description,quote=True)}">
-{canonical}<script type="application/ld+json">{json.dumps(schema,ensure_ascii=False).replace('<','&lt;')}</script><style>{style}</style></head>
-<body><main><nav><a href="#full-report">Full methodology and results</a> · <a href="configuration_summary.csv">CSV data</a> · <a href="REPRODUCE.md">Reproduction</a></nav>
-{body}<hr><section id="full-report"><h2>Full benchmark report</h2>{full}</section></main></body></html>'''
+from render_landing import render_landing
+document=render_landing(settings,rows)
 (root/'index.html').write_text(document)
 (root/'.nojekyll').write_text('')
 # A report generator may produce another Markdown report; inspect every final text file.
