@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GROMACS 2026.1 GPU Concurrency Benchmark: RTX PRO 6000 Blackwell vs RTX A4000</title><meta name="description" content="Measured 24,040-atom RNase GROMACS benchmarks: NVIDIA MPS, CUDA Graphs, concurrency and CPU threads on RTX PRO 6000 Blackwell and RTX A4000. Data and reproducible scripts.">
+<meta name="robots" content="index,follow"><meta property="og:type" content="article">
+<meta property="og:title" content="GROMACS 2026.1 GPU Concurrency Benchmark: RTX PRO 6000 Blackwell vs RTX A4000"><meta property="og:description" content="Measured 24,040-atom RNase GROMACS benchmarks: NVIDIA MPS, CUDA Graphs, concurrency and CPU threads on RTX PRO 6000 Blackwell and RTX A4000. Data and reproducible scripts.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Dataset", "name": "GROMACS 2026.1 GPU Concurrency Benchmark: RTX PRO 6000 Blackwell vs RTX A4000", "description": "Measured 24,040-atom RNase GROMACS benchmarks: NVIDIA MPS, CUDA Graphs, concurrency and CPU threads on RTX PRO 6000 Blackwell and RTX A4000. Data and reproducible scripts.", "inLanguage": "en", "keywords": ["gromacs", "molecular-dynamics", "gpu-benchmark", "cuda", "cuda-mps", "cuda-graphs", "blackwell", "rtx-a4000", "openmp", "high-performance-computing", "benchmarking"], "citation": "https://doi.org/10.5281/zenodo.3893789", "measurementTechnique": "GROMACS 2026.1 mixed-precision RNase cubic MD; independent GPU-sharing jobs; per-process timing resets and longer confirmations"}</script><style>body{margin:0;background:#f5f7fa;color:#1b2938;font:17px/1.65 system-ui,sans-serif}main{max-width:1120px;margin:36px auto;padding:28px;background:#fff;border:1px solid #dce2e9;border-radius:12px}h1{font-size:2rem;line-height:1.25}h2{margin-top:2rem}a{color:#1859a0}table{display:block;overflow-x:auto;border-collapse:collapse;width:100%;font-size:.9rem}th,td{padding:9px;border:1px solid #d6dee7;text-align:left}th{background:#edf3f8}td:nth-child(2),th:nth-child(2){white-space:nowrap}img{max-width:100%;height:auto}pre{padding:16px;overflow:auto;background:#f0f3f6}code{font-family:ui-monospace,monospace;font-size:.88em}nav{padding:12px;background:#edf3f8;border-radius:6px}.mermaid{white-space:pre-wrap}@media(max-width:680px){main{margin:0;padding:18px;border:0;border-radius:0}h1{font-size:1.5rem}}</style></head>
+<body><main><nav><a href="#full-report">Full methodology and results</a> · <a href="configuration_summary.csv">CSV data</a> · <a href="REPRODUCE.md">Reproduction</a></nav>
+<h1 id="gromacs-20261-gpu-concurrency-benchmark-rtx-pro-6000-blackwell-vs-rtx-a4000">GROMACS 2026.1 GPU Concurrency Benchmark: RTX PRO 6000 Blackwell vs RTX A4000</h1>
+<p><strong>Measured RNase cubic performance · 24,040 atoms · GROMACS 2026.1 · CUDA MPS · CPU-thread allocation</strong></p>
+<p>This benchmark measures total throughput from independent molecular dynamics simulations sharing one NVIDIA GPU. It compares two complete workstations: RTX PRO 6000 Blackwell with Core Ultra 9 285K, and RTX A4000 with Xeon w5-2455X. It explores NVIDIA CUDA Multi-Process Service (MPS), a combined GPU-bonded/CUDA-Graphs path, concurrency and OpenMP workers per simulation.</p>
+<p><strong>79 completed batches and 432 successful MD processes.</strong> Selected settings received longer confirmation runs; all completed logs passed the execution audit before the requested MD-file cleanup.</p>
+<h2 id="measured-results-at-a-glance">Measured results at a glance</h2>
+<p><code>N × T</code> means N independent MD jobs, each with one thread-MPI rank and T OpenMP workers. All three rows below use MPS and GPU bonded + CUDA Graphs.</p>
+<table>
+<thead>
+<tr>
+<th>GPU / choice</th>
+<th style="text-align: right;">N × T</th>
+<th style="text-align: right;">Nominal CPU workers</th>
+<th style="text-align: right;">Aggregate ns/day, mean ± sample SD</th>
+<th style="text-align: right;">Batches</th>
+<th style="text-align: right;">Full-batch ns/day</th>
+<th style="text-align: right;">Task GPU peak MiB</th>
+<th style="text-align: right;">Task RAM PSS peak MiB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX PRO 6000 Blackwell / highest confirmed mean</td>
+<td style="text-align: right;">8 × 3</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">4711.8 ± 20.9</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4417.5</td>
+<td style="text-align: right;">4692</td>
+<td style="text-align: right;">967.7</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell / fewer CPU workers</td>
+<td style="text-align: right;">12 × 1</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">4556.0 ± 256.8</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4301.3</td>
+<td style="text-align: right;">7012</td>
+<td style="text-align: right;">1340.6</td>
+</tr>
+<tr>
+<td>RTX A4000 / confirmed plateau</td>
+<td style="text-align: right;">4 × 2</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">929.3 ± 0.006</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">912.5</td>
+<td style="text-align: right;">774</td>
+<td style="text-align: right;">515.5</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Blackwell 8 × 3 delivered <strong>2.97×</strong> the fastest confirmed single-MD setting on that workstation. This gain combines concurrency, MPS and the chosen execution path; it is not an isolated MPS-only speedup.</li>
+<li>Blackwell 12 × 1 retained <strong>96.7%</strong> of that mean throughput with half the nominal OpenMP workers, with greater observed batch variability.</li>
+<li>On A4000, auto bonded and GPU bonded + Graphs were effectively tied near 929 ns/day at 4 × 2. The 4 × 1 auto-bonded screen was already near the plateau, but did not receive longer confirmation before the requested early stop.</li>
+</ul>
+<p>The aggregate metric sums each process’s post-warm-up rate. Full-batch throughput includes startup, warm-up and completion-tail effects. Cross-workstation differences include CPU and build differences; they are not a GPU-only hardware comparison. These short performance runs do not establish scientific equilibration.</p>
+<p><img alt="Repeated measurements of GROMACS GPU throughput" src="confirmed_throughput.png" /></p>
+<h2 id="questions-this-dataset-helps-answer">Questions this dataset helps answer</h2>
+<h3 id="how-many-concurrent-gromacs-jobs-should-i-run-on-rtx-pro-6000-blackwell">How many concurrent GROMACS jobs should I run on RTX PRO 6000 Blackwell?</h3>
+<p>For this 24,040-atom RNase input, 8 jobs with 3 OpenMP workers each had the highest longer-run mean among tested settings. Twelve jobs with one worker each were a useful CPU-saving alternative. Other molecular systems may prefer different settings.</p>
+<h3 id="does-cuda-mps-help-small-gromacs-simulations">Does CUDA MPS help small GROMACS simulations?</h3>
+<p>It can improve GPU sharing when one process leaves capacity unused. The matched Blackwell 8 × 3 screening control measured approximately 2.18× aggregate throughput with MPS versus without it. That control has one run per setting; the larger 2.97× ensemble-versus-single comparison changes more than MPS alone.</p>
+<h3 id="should-i-always-enable-gpu-bonded-and-cuda-graphs">Should I always enable GPU bonded and CUDA Graphs?</h3>
+<p>The combined path helped this Blackwell workload. It did not establish a throughput advantage over auto bonded on A4000. This extension changed GPU-bonded offload and CUDA Graphs together and does not isolate their individual effects.</p>
+<h3 id="do-gpu-wait-timers-prove-a-pcie-transfer-bottleneck">Do GPU-wait timers prove a PCIe transfer bottleneck?</h3>
+<p>No. They can include preceding GPU execution and synchronization. The report supports a CPU/offload/sharing interpretation, while distinguishing GPU arithmetic, device-memory bandwidth and PCIe traffic would require separate hardware profiling.</p>
+<h2 id="full-methodology-data-and-reproduction">Full methodology, data and reproduction</h2>
+<ul>
+<li><a href="REPORT.md">Full English benchmark report</a></li>
+<li><a href="configuration_summary.csv">Configuration summary CSV</a> and <a href="configuration_summary.json">JSON</a></li>
+<li><a href="REPRODUCE.md">Input provenance and reproduction commands</a></li>
+<li><a href="data/local-study.json">Extracted per-task Blackwell data</a> and <a href="data/remote-study.json">A4000 data</a></li>
+<li><a href="data/local-task-memory.csv">Blackwell task-memory samples</a> and <a href="data/remote-task-memory.csv">A4000 task-memory samples</a></li>
+<li><a href="data/local-audit.json">Blackwell audit record</a> and <a href="data/remote-audit.json">A4000 audit record</a></li>
+<li><a href="PUBLICATION_NOTES.md">Privacy and checksum notes</a></li>
+<li><a href="LICENSE_GUIDANCE.md">Reuse and licensing guidance</a></li>
+</ul>
+<p>Upstream input: <a href="https://zenodo.org/records/3893789">Páll, supplementary GROMACS benchmark dataset, DOI 10.5281/zenodo.3893789</a>. The exact input hash and build details are in the report. Original MD input copies, energies, trajectories, checkpoints and runtime logs were deleted after result extraction and successful audit, at the owner’s request. Extracted rates, command lines, timings and audit records remain available.</p>
+<p>Hardware and software versions are intentionally public. Absolute test timestamps and time zones are withheld; elapsed times and sampled intervals are retained. Publication-platform commit/release dates are separate from the withheld test times.</p><hr><section id="full-report"><h2>Full benchmark report</h2><p>Absolute test dates and time zones are withheld; durations and relative sampling times are retained.</p>
+<h2 id="executive-findings">Executive findings</h2>
+<p>This report compares independent RNase simulations on the two existing workstations. <code>N × T</code> means N concurrent MD processes, each using one thread-MPI rank and T OpenMP workers. Both studies started from the same scheduled time and then followed separate adaptive schedules.</p>
+<ul>
+<li><strong>RTX PRO 6000 Blackwell:</strong> best confirmed ensemble = <strong>8 × 3, MPS on, GPU bonded + CUDA Graphs</strong>, <strong>4711.8 ± 20.9 ns/day</strong> (mean ± sample SD, n=3). This is <strong>2.97×</strong> the fastest confirmed single-MD configuration, or <strong>6.38×</strong> the one-worker auto-bonded baseline. Full-batch throughput was <strong>4417.5 ns/day</strong>.
+  CPU-saving candidate: <strong>12 × 1, GPU bonded + CUDA Graphs</strong>, 4556.0 ± 256.8 ns/day using <strong>12 nominal OpenMP workers</strong>, retaining <strong>96.7%</strong> of the confirmed peak. This candidate was selected within 95% of the screening peak and then independently confirmed.</li>
+<li><strong>RTX A4000:</strong> best confirmed ensemble = <strong>4 × 2, MPS on, GPU bonded + CUDA Graphs</strong>, <strong>929.3 ± 0.006 ns/day</strong> (mean ± sample SD, n=2). This is <strong>1.13×</strong> the fastest confirmed single-MD configuration, or <strong>1.50×</strong> the one-worker auto-bonded baseline. Full-batch throughput was <strong>912.5 ns/day</strong>.</li>
+</ul>
+<p>The A4000 paths are effectively tied at approximately 929 ns/day with 4 × 2; the tiny difference does not establish that GPU bonded + Graphs is faster. Auto bonded is also a sensible choice. Its 4 × 1 screen reached approximately 933 ns/day with only four nominal workers, but that CPU-saving option did not receive longer confirmation before the requested early stop.</p>
+<p>These are the best confirmed configurations within the tested search, not an exhaustive global optimum. The full-batch metric includes launch, warm-up and completion-tail effects; the sum of task rates excludes the specified warm-up in each process.</p>
+<h2 id="what-mps-does">What MPS does</h2>
+<p>NVIDIA CUDA Multi-Process Service (MPS) is a lightweight service that coordinates GPU access from multiple CUDA processes. A control daemon manages a server, and clients share the server’s GPU scheduling resources. Kernels from different processes can overlap and GPU context-switching overhead can fall. Each MD trajectory remains an independent process with its own files and CUDA address space. Benefits are strongest when one process alone leaves usable GPU capacity. <a href="https://docs.nvidia.com/deploy/mps/latest/index.html">NVIDIA MPS overview</a>, <a href="https://docs.nvidia.com/deploy/mps/latest/when-to-use-mps.html">When to use MPS</a>.</p>
+<pre><code class="language-mermaid">flowchart LR
+  MD1[MD process 1] --&gt; MPS[MPS server]
+  MD2[MD process 2] --&gt; MPS
+  MDN[MD process N] --&gt; MPS
+  MPS --&gt; GPU[One physical NVIDIA GPU]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Role in this study</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>thread-MPI</td>
+<td>One rank per independent MD</td>
+</tr>
+<tr>
+<td>OpenMP</td>
+<td>CPU workers inside each MD</td>
+</tr>
+<tr>
+<td>CUDA MPS</td>
+<td>GPU sharing across independent MD processes</td>
+</tr>
+<tr>
+<td>CUDA Graphs</td>
+<td>Replays a process’s GPU execution graph to reduce repeated launch overhead</td>
+</tr>
+</tbody>
+</table>
+<h2 id="hardware-and-controlled-setup">Hardware and controlled setup</h2>
+<p>| Workstation | CPU topology | GPU |
+|---|---|
+| <code>Blackwell-workstation</code> | Core Ultra 9 285K: 24 cores / 24 logical CPUs; 8 P-cores + 16 E-cores | RTX PRO 6000 Blackwell, approximately 96 GiB |
+| <code>A4000-workstation</code> | Xeon w5-2455X: 12 physical cores / 24 logical CPUs | RTX A4000, approximately 16 GiB |</p>
+<table>
+<thead>
+<tr>
+<th>Platform detail</th>
+<th>Blackwell workstation</th>
+<th>A4000 workstation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Operating system</td>
+<td>Ubuntu 26.04.1 LTS</td>
+<td>Ubuntu 24.04.4 LTS</td>
+</tr>
+<tr>
+<td>Linux kernel</td>
+<td>7.0.0-43-generic</td>
+<td>7.0.0-43-generic</td>
+</tr>
+<tr>
+<td>NVIDIA driver</td>
+<td>595.99.02</td>
+<td>595.99.02</td>
+</tr>
+<tr>
+<td>GCC host compiler</td>
+<td>13.4.0</td>
+<td>13.3.0</td>
+</tr>
+</tbody>
+</table>
+<p>The local CPU is heterogeneous; the remote CPU exposes SMT siblings. The same nominal worker budget therefore does not imply the same number or type of physical cores. Core placement was left to the OS (<code>-pin off</code>). <a href="https://www.intel.com/content/www/us/en/products/sku/241060/intel-core-ultra-9-processor-285k-36m-cache-up-to-5-70-ghz/specifications.html">Intel 285K specifications</a>, <a href="https://www.intel.com/content/www/us/en/products/sku/233420/intel-xeon-w52455x-processor-30m-cache-3-20-ghz/specifications.html">Intel w5-2455X specifications</a>.</p>
+<ul>
+<li>Input: RNase cubic, RNASE ZF-1A in water, <strong>24,040 atoms</strong>, from the <a href="https://zenodo.org/records/3893789">published benchmark dataset</a>.</li>
+<li>Identical input SHA-256: <code>bd10c90ca230d76ef5fc1555dc24789f1162d18e36037007d9f325d9c760a54a</code>.</li>
+<li>GROMACS <strong>2026.1</strong>, CUDA toolkit <strong>13.1.115</strong>, FFTW <strong>3.3.10</strong>, mixed precision, cuFFT, thread-MPI and OpenMP.</li>
+<li>Hardware-specific builds: AVX2 / sm_120 locally; AVX-512 / sm_86 remotely. Absolute cross-host differences are not a GPU-only hardware comparison.</li>
+<li>The local CUDA 13.1 toolchain needed four declaration-only <code>noexcept</code> additions for compatibility with glibc 2.42. Arithmetic implementations were unchanged; see <code>cuda-glibc-compatibility.patch</code>. The remote build used the unmodified CUDA 13.1 headers.</li>
+<li>One rank per MD; fixed 2 fs timestep; PME on GPU; PME tuning disabled; coordinate/constraint update on GPU when supported; final coordinate output suppressed.</li>
+<li>Standard path: <code>-bonded auto</code>. Graph path: <code>-bonded gpu</code> and <code>GMX_CUDA_GRAPH=1</code>; actual graph execution was verified from MD Graph counters. This is a bundled path comparison, so its gain cannot be attributed to CUDA Graphs alone.</li>
+<li>Nominal OpenMP budget N×T ≤24; search safety limit 20 processes. MPS/driver helper threads are additional to this nominal worker count.</li>
+<li>Private MPS pipes, default MPS scheduling, no active-thread percentage partition. Only the experiment-owned controller is stopped.</li>
+<li>Screening: 80,000 steps, first 20,000 excluded. Confirmation: 200,000 steps, first 40,000 excluded. The initial plan was three repetitions per selected configuration; actual completed repetition counts are reported in the tables.</li>
+<li>Concurrency expanded through 2, 4, 8 and 12; 16 was added when 12 improved over lower counts by more than 3%; 20 was added if 16 improved by more than 5%. CPU-worker combinations were then explored around each path’s throughput peak.</li>
+<li>Input copies are benchmark replicas and do not establish independent scientific samples. Earlier experiments are not pooled into these statistics.</li>
+</ul>
+<p>The CPU/GPU work balance and launch overhead depend on the system and offload settings; moving all work to the GPU is not universally best. <a href="https://manual.gromacs.org/documentation/2026.1/user-guide/mdrun-performance.html">GROMACS performance guide</a>.</p>
+<h2 id="metrics">Metrics</h2>
+<p><code>Aggregate rate = sum(P_i)</code>, where P_i is each process’s post-warm-up GROMACS Performance value in ns/day.</p>
+<p><code>Full-batch rate = N × simulated_ns_per_MD × 86400 / batch_wall_seconds</code>. This includes startup and warm-up. It is useful for fixed-length batches and can be lower when task speeds are imbalanced.</p>
+<p>Confirmation variability is the sample standard deviation across batches, not a confidence interval. Screening points are single runs and are used for candidate selection. Three repeats do not establish a statistically significant ordering between close configurations. No background-load telemetry was saved.</p>
+<p>Each process resets its own counters and reports over its own completion interval. These intervals are not a single globally synchronized steady-state window; faster jobs finishing can reduce contention for the remaining jobs. The full-batch metric complements the summed rates and should be considered when planning finite batches.</p>
+<h3 id="task-attributed-memory">Task-attributed memory</h3>
+<p>Memory is sampled approximately every five seconds for the study-owned GROMACS processes and the private MPS server only. GPU allocation is summed from their NVML process-memory records; RAM is the sum of their proportional set sizes (PSS), which apportions shared pages instead of counting them once per process. Desktop applications and unrelated system occupancy are excluded. GPU figures include the CUDA context and MPS overhead attributable to these jobs. The small MPS control daemon and Python benchmark harness are outside this memory scope.</p>
+<p>Memory sampling was requested after screening had started. Missing earlier measurements remain unreported; available confirmation samples are included below. Reported peaks are sampled maxima, not a guarantee of the instantaneous absolute peak. Units are MiB (1024 MiB = 1 GiB).</p>
+<h2 id="single-trajectory-cpu-scaling">Single-trajectory CPU scaling</h2>
+<p><img alt="Single-task CPU scaling" src="single_task_cpu_scaling.png" /></p>
+<h2 id="concurrency-with-one-cpu-worker-per-md">Concurrency with one CPU worker per MD</h2>
+<p><img alt="Concurrency scaling" src="concurrency_scaling.png" /></p>
+<h2 id="cpu-allocation-and-concurrency-together">CPU allocation and concurrency together</h2>
+<p><img alt="Configuration heatmaps" src="configuration_heatmaps.png" /></p>
+<p>Blank heatmap cells were not tested. Colors have a common scale across the two paths within each GPU; scales differ between GPUs.</p>
+<h2 id="longer-confirmation-runs">Longer confirmation runs</h2>
+<p><img alt="Confirmed throughput" src="confirmed_throughput.png" /></p>
+<p>Dots show completed batches. A setting with only one dot has no estimated standard deviation. Repetition counts are given in the table.</p>
+<table>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Path</th>
+<th style="text-align: right;">N × T</th>
+<th>MPS</th>
+<th style="text-align: right;">Repeats</th>
+<th style="text-align: right;">Aggregate ns/day, mean ± SD</th>
+<th style="text-align: right;">Per-MD ns/day</th>
+<th style="text-align: right;">Full-batch ns/day</th>
+<th style="text-align: right;">Task GPU peak MiB</th>
+<th style="text-align: right;">Task RAM PSS peak MiB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 1</td>
+<td>off</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">619.5 (single run)</td>
+<td style="text-align: right;">619.5</td>
+<td style="text-align: right;">597.5</td>
+<td style="text-align: right;">186</td>
+<td style="text-align: right;">163.6</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 8</td>
+<td>off</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">822.1 (single run)</td>
+<td style="text-align: right;">822.1</td>
+<td style="text-align: right;">778.0</td>
+<td style="text-align: right;">186</td>
+<td style="text-align: right;">172.1</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 2</td>
+<td>on</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">929.0 ± 0.4</td>
+<td style="text-align: right;">232.3</td>
+<td style="text-align: right;">912.5</td>
+<td style="text-align: right;">766</td>
+<td style="text-align: right;">514.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 2</td>
+<td>on</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">929.3 ± 0.006</td>
+<td style="text-align: right;">232.3</td>
+<td style="text-align: right;">912.5</td>
+<td style="text-align: right;">774</td>
+<td style="text-align: right;">515.5</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 1</td>
+<td>off</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">738.3 ± 65.4</td>
+<td style="text-align: right;">738.3</td>
+<td style="text-align: right;">713.5</td>
+<td style="text-align: right;">578</td>
+<td style="text-align: right;">173.4</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">16 × 1</td>
+<td>on</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">3216.2 ± 50.6</td>
+<td style="text-align: right;">201.0</td>
+<td style="text-align: right;">3034.2</td>
+<td style="text-align: right;">9268</td>
+<td style="text-align: right;">1744.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 4</td>
+<td>off</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1584.5 ± 114.8</td>
+<td style="text-align: right;">1584.5</td>
+<td style="text-align: right;">1458.0</td>
+<td style="text-align: right;">582</td>
+<td style="text-align: right;">179.3</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">8 × 3</td>
+<td>on</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4711.8 ± 20.9</td>
+<td style="text-align: right;">589.0</td>
+<td style="text-align: right;">4417.5</td>
+<td style="text-align: right;">4692</td>
+<td style="text-align: right;">967.7</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">12 × 1</td>
+<td>on</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4556.0 ± 256.8</td>
+<td style="text-align: right;">379.7</td>
+<td style="text-align: right;">4301.3</td>
+<td style="text-align: right;">7012</td>
+<td style="text-align: right;">1340.6</td>
+</tr>
+</tbody>
+</table>
+<h2 id="matched-mps-control">Matched MPS control</h2>
+<p>The control uses the same configuration and 80,000-step / 20,000-step screening protocol as its matching MPS-on screening run. These are single-run controls. A workstation without a completed control is omitted.</p>
+<table>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Configuration</th>
+<th style="text-align: right;">MPS on, ns/day</th>
+<th style="text-align: right;">MPS off, ns/day</th>
+<th style="text-align: right;">Ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>8 × 3, GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4851.3</td>
+<td style="text-align: right;">2229.2</td>
+<td style="text-align: right;">2.18×</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recommended-commands">Recommended commands</h2>
+<p>Use the tested executable rather than assuming the default <code>gmx</code> command has CUDA support.</p>
+<table>
+<thead>
+<tr>
+<th>Workstation</th>
+<th>Tested executable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Blackwell-workstation</code></td>
+<td><code>$GMX_BIN_BLACKWELL</code></td>
+</tr>
+<tr>
+<td><code>A4000-workstation</code></td>
+<td><code>$GMX_BIN_A4000</code></td>
+</tr>
+</tbody>
+</table>
+<p>Start a private MPS controller once, then launch each trajectory in a separate directory. Retain the same MPS pipe environment for the controller and its clients. For each selected configuration, use the following core options:</p>
+<p><strong>RTX PRO 6000 Blackwell: 8 × 3</strong></p>
+<pre><code class="language-bash">export GMX_CUDA_GRAPH=1
+# Run 8 independent jobs, one output directory per job.
+&quot;$GMX&quot; mdrun -s md.tpr -deffnm md -ntmpi 1 -ntomp 3 -pin off \
+  -nb gpu -pme gpu -bonded gpu -update auto
+</code></pre>
+<p><strong>RTX A4000: 4 × 2</strong></p>
+<pre><code class="language-bash">export GMX_CUDA_GRAPH=1
+# Run 4 independent jobs, one output directory per job.
+&quot;$GMX&quot; mdrun -s md.tpr -deffnm md -ntmpi 1 -ntomp 2 -pin off \
+  -nb gpu -pme gpu -bonded gpu -update auto
+</code></pre>
+<p><code>$GMX</code> should be set to the executable in the table. The benchmark’s <code>-notunepme</code>, output suppression and counter resets were measurement controls; production choices should follow the actual system’s validated simulation settings. See <code>REPRODUCE.md</code> for an isolated MPS launch and full runner invocation.</p>
+<h2 id="bottleneck-assessment">Bottleneck assessment</h2>
+<p>The useful distinction is between CPU preparation/launch work, sharing between GPU processes, and the remaining device execution path. The following evidence comes from configuration changes, rather than from a GPU-utilization percentage:</p>
+<table>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Observation</th>
+<th>Supported interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>Auto-bonded single MD: 798 ns/day at one worker; best screened CPU allocation 8 workers: 1101 ns/day. GPU-bonded + Graphs at one worker: 1237 ns/day.</td>
+<td>CPU allocation and the offload/launch path can affect latency. The graph path changes two options together, so this extension does not isolate their individual contributions.</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>MPS, auto bonded, one worker per MD: 2 jobs: 1244; 4 jobs: 2152; 8 jobs: 3067; 12 jobs: 3214; 16 jobs: 3287 ns/day.</td>
+<td>The curve identifies where adding independent jobs stops providing much throughput. A plateau is consistent with saturation of the shared execution path; it does not identify a specific GPU hardware unit.</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>Auto-bonded single MD: 622 ns/day at one worker; best screened CPU allocation 8 workers: 838 ns/day. GPU-bonded + Graphs at one worker: 649 ns/day.</td>
+<td>CPU allocation and the offload/launch path can affect latency. The graph path changes two options together, so this extension does not isolate their individual contributions.</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>MPS, auto bonded, one worker per MD: 2 jobs: 807; 4 jobs: 933; 8 jobs: 935; 12 jobs: 931 ns/day.</td>
+<td>The curve identifies where adding independent jobs stops providing much throughput. A plateau is consistent with saturation of the shared execution path; it does not identify a specific GPU hardware unit.</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>Matched 8 × 3 control: MPS on/off ratio 2.18×.</td>
+<td>A large ratio supports GPU process-sharing/scheduling overhead as a material limit without MPS. A near-unity ratio indicates little benefit for this configuration. This control has one run per setting.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="internal-gromacs-timing-evidence">Internal GROMACS timing evidence</h3>
+<p>The following are arithmetic means of the reported per-process timing percentages across the indicated confirmation batches. They describe GROMACS host-side cycle accounting, not GPU hardware utilization or PCIe bandwidth. The overlapping PME breakdown is excluded.</p>
+<table>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Configuration</th>
+<th style="text-align: right;">Force %</th>
+<th style="text-align: right;">Neighbor search %</th>
+<th style="text-align: right;">Wait GPU state copy %</th>
+<th style="text-align: right;">MD Graph %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>1 × 1, auto bonded</td>
+<td style="text-align: right;">55.5</td>
+<td style="text-align: right;">18.5</td>
+<td style="text-align: right;">5.4</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>1 × 4, GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">18.9</td>
+<td style="text-align: right;">40.7</td>
+<td style="text-align: right;">4.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>8 × 3, GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">0.4</td>
+<td style="text-align: right;">15.2</td>
+<td style="text-align: right;">61.6</td>
+<td style="text-align: right;">2.8</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>1 × 1, auto bonded</td>
+<td style="text-align: right;">50.2</td>
+<td style="text-align: right;">19.8</td>
+<td style="text-align: right;">11.0</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>1 × 8, auto bonded</td>
+<td style="text-align: right;">12.8</td>
+<td style="text-align: right;">4.7</td>
+<td style="text-align: right;">62.7</td>
+<td style="text-align: right;">n/a</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>4 × 2, GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">0.0</td>
+<td style="text-align: right;">4.5</td>
+<td style="text-align: right;">89.7</td>
+<td style="text-align: right;">0.7</td>
+</tr>
+</tbody>
+</table>
+<p>Task-attributed VRAM and RAM peaks describe allocation, not bandwidth. They cannot by themselves diagnose PCIe transfer or device-memory bandwidth. Likewise, a GROMACS GPU-wait timer can include waiting for preceding device work and synchronization; its label alone does not establish a data-transfer bottleneck.</p>
+<p>Distinguishing GPU arithmetic from device-memory traffic, PCIe transfer and synchronization would require a representative kernel/API timeline and hardware counters (for example, a separate Nsight Systems/Compute experiment). This extension establishes useful settings and sharing effects, but does not claim that level of hardware attribution.</p>
+<h2 id="interpretation-and-limits">Interpretation and limits</h2>
+<ul>
+<li>More OpenMP workers can help CPU-side work, but extra synchronization and hybrid-core/SMT placement can limit gains. Use measured throughput rather than assuming speed increases linearly with worker count.</li>
+<li>Select for total ensemble throughput when many trajectories are needed; use the fastest single-MD setting when trajectory completion latency is the priority.</li>
+<li>This adaptive search does not cover every N×T combination, affinity policy, MPS SM partition, neighbor-list setting or GPU kernel implementation. Small screening differences require confirmation.</li>
+<li>No kernel-level hardware profile was collected in this extension. Throughput curves alone do not separate GPU arithmetic limits from device-memory bandwidth or synchronization latency.</li>
+<li>The result applies to this 24,040-atom RNase benchmark. Different force fields, constraints, pressure coupling and output frequencies can change the best settings.</li>
+</ul>
+<h2 id="complete-screening-table">Complete screening table</h2>
+<table>
+<thead>
+<tr>
+<th>GPU</th>
+<th>Path</th>
+<th style="text-align: right;">N × T</th>
+<th style="text-align: right;">Worker budget</th>
+<th>MPS</th>
+<th style="text-align: right;">Aggregate ns/day</th>
+<th style="text-align: right;">Full-batch ns/day</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 1</td>
+<td style="text-align: right;">1</td>
+<td>off</td>
+<td style="text-align: right;">622.1</td>
+<td style="text-align: right;">566.2</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 2</td>
+<td style="text-align: right;">2</td>
+<td>off</td>
+<td style="text-align: right;">771.9</td>
+<td style="text-align: right;">683.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 4</td>
+<td style="text-align: right;">4</td>
+<td>off</td>
+<td style="text-align: right;">814.7</td>
+<td style="text-align: right;">719.6</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 8</td>
+<td style="text-align: right;">8</td>
+<td>off</td>
+<td style="text-align: right;">837.8</td>
+<td style="text-align: right;">735.0</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">2 × 1</td>
+<td style="text-align: right;">2</td>
+<td>on</td>
+<td style="text-align: right;">806.8</td>
+<td style="text-align: right;">771.7</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 1</td>
+<td style="text-align: right;">4</td>
+<td>on</td>
+<td style="text-align: right;">933.4</td>
+<td style="text-align: right;">894.0</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 2</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">938.7</td>
+<td style="text-align: right;">891.2</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 3</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">929.9</td>
+<td style="text-align: right;">885.7</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 4</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">933.8</td>
+<td style="text-align: right;">888.5</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">6 × 4</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">934.8</td>
+<td style="text-align: right;">902.8</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 1</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">934.8</td>
+<td style="text-align: right;">911.8</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 2</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">935.0</td>
+<td style="text-align: right;">908.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 3</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">937.4</td>
+<td style="text-align: right;">910.0</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">12 × 1</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">931.1</td>
+<td style="text-align: right;">911.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>auto bonded</td>
+<td style="text-align: right;">12 × 2</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">933.1</td>
+<td style="text-align: right;">912.3</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 1</td>
+<td style="text-align: right;">1</td>
+<td>off</td>
+<td style="text-align: right;">648.7</td>
+<td style="text-align: right;">590.4</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 2</td>
+<td style="text-align: right;">2</td>
+<td>off</td>
+<td style="text-align: right;">726.7</td>
+<td style="text-align: right;">645.6</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 4</td>
+<td style="text-align: right;">4</td>
+<td>off</td>
+<td style="text-align: right;">774.7</td>
+<td style="text-align: right;">683.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 8</td>
+<td style="text-align: right;">8</td>
+<td>off</td>
+<td style="text-align: right;">796.1</td>
+<td style="text-align: right;">704.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">2 × 1</td>
+<td style="text-align: right;">2</td>
+<td>on</td>
+<td style="text-align: right;">852.0</td>
+<td style="text-align: right;">798.4</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">2 × 2</td>
+<td style="text-align: right;">4</td>
+<td>on</td>
+<td style="text-align: right;">886.8</td>
+<td style="text-align: right;">822.2</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">2 × 3</td>
+<td style="text-align: right;">6</td>
+<td>on</td>
+<td style="text-align: right;">900.1</td>
+<td style="text-align: right;">812.6</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">2 × 4</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">896.4</td>
+<td style="text-align: right;">827.2</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 1</td>
+<td style="text-align: right;">4</td>
+<td>on</td>
+<td style="text-align: right;">930.9</td>
+<td style="text-align: right;">894.1</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 2</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">931.2</td>
+<td style="text-align: right;">891.2</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 3</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">931.1</td>
+<td style="text-align: right;">888.5</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 4</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">930.7</td>
+<td style="text-align: right;">888.5</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">8 × 1</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">856.9</td>
+<td style="text-align: right;">835.9</td>
+</tr>
+<tr>
+<td>RTX A4000</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">12 × 1</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">876.0</td>
+<td style="text-align: right;">859.0</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 1</td>
+<td style="text-align: right;">1</td>
+<td>off</td>
+<td style="text-align: right;">798.5</td>
+<td style="text-align: right;">726.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 2</td>
+<td style="text-align: right;">2</td>
+<td>off</td>
+<td style="text-align: right;">1078.4</td>
+<td style="text-align: right;">946.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 4</td>
+<td style="text-align: right;">4</td>
+<td>off</td>
+<td style="text-align: right;">1027.6</td>
+<td style="text-align: right;">874.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">1 × 8</td>
+<td style="text-align: right;">8</td>
+<td>off</td>
+<td style="text-align: right;">1101.3</td>
+<td style="text-align: right;">885.2</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">2 × 1</td>
+<td style="text-align: right;">2</td>
+<td>on</td>
+<td style="text-align: right;">1243.9</td>
+<td style="text-align: right;">1104.7</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 1</td>
+<td style="text-align: right;">4</td>
+<td>on</td>
+<td style="text-align: right;">2151.7</td>
+<td style="text-align: right;">2015.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">4 × 4</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">2698.9</td>
+<td style="text-align: right;">2381.2</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">6 × 4</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">2996.4</td>
+<td style="text-align: right;">2673.4</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 1</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">3067.4</td>
+<td style="text-align: right;">2679.9</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 2</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">3023.0</td>
+<td style="text-align: right;">2734.4</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">8 × 3</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">2691.5</td>
+<td style="text-align: right;">2411.7</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">12 × 1</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">3214.1</td>
+<td style="text-align: right;">2906.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">12 × 2</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">2790.9</td>
+<td style="text-align: right;">2533.2</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>auto bonded</td>
+<td style="text-align: right;">16 × 1</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">3287.0</td>
+<td style="text-align: right;">3001.5</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 1</td>
+<td style="text-align: right;">1</td>
+<td>off</td>
+<td style="text-align: right;">1237.0</td>
+<td style="text-align: right;">1096.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 2</td>
+<td style="text-align: right;">2</td>
+<td>off</td>
+<td style="text-align: right;">1327.5</td>
+<td style="text-align: right;">1095.9</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 4</td>
+<td style="text-align: right;">4</td>
+<td>off</td>
+<td style="text-align: right;">1406.8</td>
+<td style="text-align: right;">1170.4</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">1 × 8</td>
+<td style="text-align: right;">8</td>
+<td>off</td>
+<td style="text-align: right;">1117.0</td>
+<td style="text-align: right;">946.0</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">2 × 1</td>
+<td style="text-align: right;">2</td>
+<td>on</td>
+<td style="text-align: right;">2057.8</td>
+<td style="text-align: right;">1816.3</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 1</td>
+<td style="text-align: right;">4</td>
+<td>on</td>
+<td style="text-align: right;">3584.9</td>
+<td style="text-align: right;">3101.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">4 × 4</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">3940.6</td>
+<td style="text-align: right;">3325.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">6 × 4</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">4507.9</td>
+<td style="text-align: right;">3945.8</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">8 × 1</td>
+<td style="text-align: right;">8</td>
+<td>on</td>
+<td style="text-align: right;">4555.6</td>
+<td style="text-align: right;">3998.6</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">8 × 2</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">4643.0</td>
+<td style="text-align: right;">4001.3</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">8 × 3</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">4851.3</td>
+<td style="text-align: right;">4122.1</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">12 × 1</td>
+<td style="text-align: right;">12</td>
+<td>on</td>
+<td style="text-align: right;">4780.9</td>
+<td style="text-align: right;">4270.0</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">12 × 2</td>
+<td style="text-align: right;">24</td>
+<td>on</td>
+<td style="text-align: right;">4850.4</td>
+<td style="text-align: right;">4382.2</td>
+</tr>
+<tr>
+<td>RTX PRO 6000 Blackwell</td>
+<td>GPU bonded + CUDA Graphs</td>
+<td style="text-align: right;">16 × 1</td>
+<td style="text-align: right;">16</td>
+<td>on</td>
+<td style="text-align: right;">4806.9</td>
+<td style="text-align: right;">4264.9</td>
+</tr>
+</tbody>
+</table>
+<h2 id="validation">Validation</h2>
+<ul>
+<li>RTX PRO 6000 Blackwell: <strong>44 completed batches, 290 successful MD processes</strong>; independent raw-log audit passed.
+  Observed concurrency reached 16; measurement window 0.000–2183.317 seconds relative to this workstation’s first batch. Absolute dates and time zones are withheld.</li>
+<li><strong>RTX A4000 stopping rule:</strong> User requested no additional tests where the trend or plateau was already clear; stopped after the active batch completed. All scheduled screening was already complete. Redundant remaining confirmations, the MPS-off control and the extra CPU-saving follow-up were cancelled. Completed batches were retained; the active batch finished normally before shutdown. Single-run confirmations have no estimated standard deviation.</li>
+<li>RTX A4000: <strong>35 completed batches, 142 successful MD processes</strong>; independent raw-log audit passed.
+  Observed concurrency reached 12; measurement window 0.000–2729.993 seconds relative to this workstation’s first batch. Absolute dates and time zones are withheld.</li>
+</ul>
+<p>The audit checks normal completion, zero exit status, positive finite rates matching raw logs, requested OpenMP count, timing reset, graph execution where requested, MPS client count, worker budget and absence of NaN/fatal/LINCS warnings. These checks validate benchmark execution; they do not establish physical equilibration or production scientific convergence.</p>
+<h2 id="reproducibility-files">Reproducibility files</h2>
+<ul>
+<li><code>configuration_summary.csv</code> / <code>.json</code>: all grouped measurements.</li>
+<li><code>local-study.json</code> and <code>remote-study.json</code>: per-task rates, command lines, timing and MPS client validation.</li>
+<li><code>extended_benchmark.py</code>: bounded adaptive runner, including screening, confirmations and matched controls.</li>
+<li><code>local-task-memory.csv</code> / <code>remote-task-memory.csv</code>: task-attributed GPU and PSS memory samples.</li>
+<li>Per-task rates, timings and command lines: retained in the study JSON. Extracted internal timing rows: <code>local-wallcycles.csv</code> / <code>remote-wallcycles.csv</code>.</li>
+<li>Original MD input copies, energy/trajectory/checkpoint files and runtime logs were deleted at the user’s request after extraction and successful raw-log audits. The audit records are retained; the original logs are no longer distributed.</li>
+<li><code>analyze_extended.py</code>: this report and figure generator.</li>
+<li><code>audit_extended.py</code> and per-host audit JSON: independent raw-log validation.</li>
+<li><code>REPRODUCE.md</code>: environment, input and invocation guide.</li>
+</ul>
+<h2 id="sharing-and-citation">Sharing and citation</h2>
+<p>A GitHub repository is suitable for versioned scripts, CSV data, figures and reproduction instructions. A tagged release can be archived in Zenodo to obtain a DOI; subsequent archived releases receive versioned records. This combines a practical collaboration surface with a stable research citation. <a href="https://docs.github.com/en/repositories/archiving-a-github-repository/referencing-and-citing-content">GitHub citation guide</a>, <a href="https://help.zenodo.org/docs/github/">Zenodo GitHub integration</a>.</p>
+<p>For feedback from practitioners, share the repository link through the <a href="https://gromacs.bioexcel.eu/">GROMACS community forum</a>. Include the precise hardware models, software/build settings, input DOI and hash, reset/measurement lengths, individual task rates, batch timings, repetition counts and dispersion. Distinguish screening observations from confirmed measurements.</p>
+<p>Use the anonymized public copy when sharing. Keep workstation hostnames, private network addresses, usernames and credential paths out of a public upload. Reference the upstream input dataset and its terms rather than automatically redistributing its binary inputs. Add an appropriate license for original scripts and results when preparing the repository release.</p></section></main></body></html>

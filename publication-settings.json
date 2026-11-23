@@ -1,0 +1,23 @@
+{
+  "title": "GROMACS 2026.1 GPU Concurrency Benchmark: RTX PRO 6000 Blackwell vs RTX A4000",
+  "description": "Measured 24,040-atom RNase GROMACS benchmarks: NVIDIA MPS, CUDA Graphs, concurrency and CPU threads on RTX PRO 6000 Blackwell and RTX A4000. Data and reproducible scripts.",
+  "repository_name": "gromacs-gpu-concurrency-benchmarks",
+  "topics": [
+    "gromacs",
+    "molecular-dynamics",
+    "gpu-benchmark",
+    "cuda",
+    "cuda-mps",
+    "cuda-graphs",
+    "blackwell",
+    "rtx-a4000",
+    "openmp",
+    "high-performance-computing",
+    "benchmarking"
+  ],
+  "withhold_absolute_test_times": true,
+  "repository_url": "",
+  "site_url": "",
+  "citation_doi": "",
+  "public_author": ""
+}

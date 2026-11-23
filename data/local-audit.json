@@ -1,0 +1,272 @@
+{
+  "hostname": "Blackwell-workstation",
+  "cases": 44,
+  "successful_md_runs": 290,
+  "all_passed": true,
+  "details": [
+    {
+      "case": "screen-auto-1x1-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-1x2-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-1x4-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-1x8-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-1x1-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-1x2-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-1x4-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-1x8-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-2x1-mps1-r1",
+      "tasks": 2,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-4x1-mps1-r1",
+      "tasks": 4,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-8x1-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-12x1-mps1-r1",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-16x1-mps1-r1",
+      "tasks": 16,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-4x4-mps1-r1",
+      "tasks": 4,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-6x4-mps1-r1",
+      "tasks": 6,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-8x2-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-8x3-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-auto-12x2-mps1-r1",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-2x1-mps1-r1",
+      "tasks": 2,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-4x1-mps1-r1",
+      "tasks": 4,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-8x1-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-12x1-mps1-r1",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-16x1-mps1-r1",
+      "tasks": 16,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-4x4-mps1-r1",
+      "tasks": 4,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-6x4-mps1-r1",
+      "tasks": 6,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-8x2-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-8x3-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "screen-gpu-graphs-12x2-mps1-r1",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-8x3-mps1-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-1x1-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-1x4-mps0-r1",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-16x1-mps1-r1",
+      "tasks": 16,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-8x3-mps1-r2",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-1x4-mps0-r2",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-16x1-mps1-r2",
+      "tasks": 16,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-1x1-mps0-r2",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-1x4-mps0-r3",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-1x1-mps0-r3",
+      "tasks": 1,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-auto-16x1-mps1-r3",
+      "tasks": 16,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-8x3-mps1-r3",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "mps-control-gpu-graphs-8x3-mps0-r1",
+      "tasks": 8,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-12x1-mps1-r1",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-12x1-mps1-r2",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    },
+    {
+      "case": "confirm-gpu-graphs-12x1-mps1-r3",
+      "tasks": 12,
+      "passed": true,
+      "errors": []
+    }
+  ]
+}

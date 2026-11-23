@@ -1,0 +1,16 @@
+{
+  "screen_peak_ns_day": 4851.338,
+  "criterion": "within 95% of screening peak; fewest OpenMP workers, then fewer MD processes",
+  "selected": {
+    "variant": "gpu-graphs",
+    "concurrency": 12,
+    "threads": 1,
+    "cpu_budget": 12,
+    "total_ns_day": 4780.94
+  },
+  "additional_cases": [
+    "gpu-graphs,12,1,1,confirm,1",
+    "gpu-graphs,12,1,1,confirm,2",
+    "gpu-graphs,12,1,1,confirm,3"
+  ]
+}

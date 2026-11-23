@@ -1,0 +1,69 @@
+{
+  "throughput": [
+    {
+      "hostname": "Blackwell-workstation",
+      "gpu": "RTX PRO 6000 Blackwell",
+      "phase": "confirm",
+      "variant": "gpu-graphs",
+      "concurrency": 8,
+      "threads_per_md": 3,
+      "openmp_budget": 24,
+      "mps": true,
+      "repeats": 3,
+      "total_mean_ns_day": 4711.822,
+      "total_sd_ns_day": 20.857804966007045,
+      "total_min_ns_day": 4687.858,
+      "total_max_ns_day": 4725.888,
+      "per_md_mean_ns_day": 588.97775,
+      "batch_mean_ns_day": 4417.475013608287,
+      "wall_mean_s": 62.58876666666667,
+      "throughput_per_openmp_worker": 196.32591666666667,
+      "sampled_task_gpu_peak_mib": 4692.0,
+      "sampled_task_ram_pss_peak_mib": 967.732
+    },
+    {
+      "hostname": "A4000-workstation",
+      "gpu": "RTX A4000",
+      "phase": "confirm",
+      "variant": "gpu-graphs",
+      "concurrency": 4,
+      "threads_per_md": 2,
+      "openmp_budget": 8,
+      "mps": true,
+      "repeats": 2,
+      "total_mean_ns_day": 929.2515,
+      "total_sd_ns_day": 0.006363961030689217,
+      "total_min_ns_day": 929.247,
+      "total_max_ns_day": 929.256,
+      "per_md_mean_ns_day": 232.312875,
+      "batch_mean_ns_day": 912.4877955346162,
+      "wall_mean_s": 151.49790000000002,
+      "throughput_per_openmp_worker": 116.1564375,
+      "sampled_task_gpu_peak_mib": 774.0,
+      "sampled_task_ram_pss_peak_mib": 515.475
+    }
+  ],
+  "cpu_saving": [
+    {
+      "hostname": "Blackwell-workstation",
+      "gpu": "RTX PRO 6000 Blackwell",
+      "phase": "confirm",
+      "variant": "gpu-graphs",
+      "concurrency": 12,
+      "threads_per_md": 1,
+      "openmp_budget": 12,
+      "mps": true,
+      "repeats": 3,
+      "total_mean_ns_day": 4556.044,
+      "total_sd_ns_day": 256.76522211350965,
+      "total_min_ns_day": 4259.573,
+      "total_max_ns_day": 4706.942,
+      "per_md_mean_ns_day": 379.6703333333333,
+      "batch_mean_ns_day": 4301.334537907,
+      "wall_mean_s": 96.57316666666667,
+      "throughput_per_openmp_worker": 379.6703333333333,
+      "sampled_task_gpu_peak_mib": 7012.0,
+      "sampled_task_ram_pss_peak_mib": 1340.63
+    }
+  ]
+}
